@@ -32,12 +32,13 @@ def login():
         error = None
         if form.validate_on_submit():
             username = form.username.data
-            h = hashlib.sha1()
             password = form.password.data
-            h.update(password)
-            password_hash = h.hexdigest()
+            # h = hashlib.sha1()
+            # password = form.password.data
+            # h.update(password)
+            # password_hash = h.hexdigest()
             if username and password:
-                sql_query = 'SELECT username FROM User WHERE userName="%s" AND password="%s"' % (username, password_hash)
+                sql_query = 'SELECT username FROM user_profile WHERE username="%s" AND password="%s"' % (username, password)
                 cursor = con.cursor()
                 cursor.execute(sql_query)
                 data = cursor.fetchone()
