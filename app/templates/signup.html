@@ -1,0 +1,52 @@
+<!-- extend from base layout -->
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Sign In</h1>
+    <form action="{{ url_for('signup')}}" method="post" name="signup">
+        {{ form.hidden_tag() }}
+        <p>
+            First Name:<br>
+            {{ form.firstname(size=80) }}<br>
+            {% for error in form.firstname.errors %}
+             <span style="color: red;">[{{ error }}]</span>
+             {% endfor %}
+        </p>
+        <p>
+            Last Name:<br>
+            {{ form.lastname(size=80) }}<br>
+            {% for error in form.lastname.errors %}
+             <span style="color: red;">[{{ error }}]</span>
+             {% endfor %}
+        </p>
+        <p>
+            Username:<br>
+            {{ form.username(size=80) }}<br>
+            {% for error in form.username.errors %}
+             <span style="color: red;">[{{ error }}]</span>
+             {% endfor %}
+        </p>
+        <p>
+            Password:<br>
+            {{ form.password(size=80) }}<br>
+            {% for error in form.password.errors %}
+             <span style="color: red;">[{{ error }}]</span>
+             {% endfor %}
+        </p>
+         <p>
+            Confirm Password:<br>
+            {{ form.confirm(size=80) }}<br>
+            {% for error in form.confirm.errors %}
+             <span style="color: red;">[{{ error }}]</span>
+             {% endfor %}
+        </p>
+         <p>
+            Email:<br>
+            {{ form.emailid(size=80) }}<br>
+            {% for error in form.emailid.errors %}
+             <span style="color: red;">[{{ error }}]</span>
+             {% endfor %}
+        </p>
+        <p><input type="submit" value="Sign Up"></p>
+    </form>
+{% endblock %}

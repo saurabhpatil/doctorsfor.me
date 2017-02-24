@@ -1,0 +1,32 @@
+<html>
+  <head>
+    {% if title %}
+    <title>{{ title }} - Home Page</title>
+    {% else %}
+    <title>Welcome to Better Doctors For Me</title>
+    {% endif %}
+  </head>
+  <body>
+    <div>BDFM Logo: 
+      <a href="/index">Home</a>
+      {% if not session.get('logged_in', False) %}
+      <a href="/login">Login</a>
+      <a href="/signup">Signup</a>
+
+      {% else %}
+      <a href="/logout">Logout</a>
+      {% endif %}
+    </div>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </body>
+</html>
