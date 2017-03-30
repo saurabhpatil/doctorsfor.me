@@ -1,17 +1,17 @@
 from app import app, mdb
 import flask
 from config import *
+import os
 
 
 ''' API here onwards to be built by Saurabh '''
 
 def connect_database():
     try:
-        con = mdb.connect(SQL_DATABASE_URI, SQL_DATABASE_USER, \
+        con = mdb.connect(os.environ.get('SQL_DATABASE_URI'), SQL_DATABASE_USER, \
                       SQL_DATABASE_PASS, SQL_DATABASE_SCHEMA, \
                       use_unicode=True, charset='utf8')
         return con
-
     except Exception as e:
         print(e)
         return None
@@ -27,6 +27,7 @@ def search():
     result_data = cursor.fetchall()
     cursor.close()
     con.close()
+    return 'Hello World'
 
 @app.route('/appointment', methods=['GET'])
 def read_appointment():
@@ -68,7 +69,7 @@ def delete_user():
 
 @app.route('/logout', methods=['POST'])
 def user_logout():
-    pass
+    return 'User has been logged out.'
 
 @app.route('/review', methods=['GET'])
 def read_review():

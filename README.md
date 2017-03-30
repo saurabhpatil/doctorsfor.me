@@ -20,4 +20,5 @@ Web app for DoctorsFor.me
 1. Install virtualenv: `pip install virtualenv`
 2. Create virtual environment: `virtualenv venv`
 3. Install dependecies: `pip install -qr requirements.txt`
+4. Set environment variable: SQL_DATABASE_URI to URL of MySQL server
 4. Run dev: `make run` or prod: `make prod-run`
