@@ -11,3 +11,5 @@ flipflop
 coverage
 MySQL-python
 gunicorn
+flask-restful
+gevent
