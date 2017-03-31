@@ -4,7 +4,7 @@ install:
 		pip install -qr requirements.txt
 
 test:
-		nosetests test
+		nosetests -sv app/test.py
 
 run:
 		python server.py

@@ -13,3 +13,5 @@ MySQL-python
 gunicorn
 flask-restful
 gevent
+requests
+nose
