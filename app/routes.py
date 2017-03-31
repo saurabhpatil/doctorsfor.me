@@ -2,6 +2,7 @@ from app import app, mdb
 from flask import request, json
 from config import *
 import os
+import datetime, time
 
 
 ''' API here onwards to be built by Saurabh '''
@@ -226,7 +227,54 @@ def read_review():
 
 @app.route('/review', methods=['POST'])
 def create_review():
-    pass
+    result = dict()
+    result['success'] = False
+
+    profile_id = request.form.get('id')
+    user_type = request.form.get('user_type')
+    doctor_id = request.form.get('doctor_id')
+    score = request.form.get('score')
+    comment = request.form.get('comment')
+    ts = time.time()
+    timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+
+    # Check for null data
+    if profile_id is None or user_type is None:
+        result['error'] = 'Either profile_id or user_type is null.'
+        return result
+    elif user_type != 'patient':
+        result['error'] = 'Request should contain patient as user_type.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Get customer_id from customer table
+        sql_query = 'SELECT customer_id FROM customer WHERE profile_id={}'.format(profile_id)
+        print(sql_query)
+        cursor.execute(sql_query)
+        customer_id = cursor.fetchone()
+        customer_id = int(customer_id[0])
+
+        # # Insert review in reviews table
+        sql_query = "INSERT INTO reviews(score, comment, customer_id, doctor_id, date) VALUES({},'{}',{},{},'{}')".format(score, comment, customer_id, doctor_id, timestamp)
+        print(sql_query)
+        cursor.execute(sql_query)
+        
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/review', methods=['PUT'])
 def update_review():
