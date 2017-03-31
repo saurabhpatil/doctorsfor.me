@@ -286,7 +286,58 @@ def delete_review():
 
 @app.route('/availability', methods=['GET'])
 def read_availability():
-    pass
+    result = dict()
+    result['success'] = False
+
+    profile_id = request.args.get('id', None)
+    user_type = request.args.get('user_type', None)
+
+    # Check for null data
+    if profile_id is None or user_type is None:
+        result['error'] = 'Either profile_id or user_type is null.'
+        return result
+    elif user_type != 'doctor':
+        result['error'] = 'Request should contain doctor as user_type.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Get doctor_id from doctor table
+        sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(profile_id)
+        cursor.execute(sql_query)
+        doctor_id = cursor.fetchone()
+        doctor_id = int(doctor_id[0])
+
+        # Get list of reviews from reviews table
+        sql_query = "SELECT date, time FROM availability WHERE doctor_id={}".format(doctor_id)
+        cursor.execute(sql_query)
+        availability_iterator = cursor.fetchall()
+
+        result['available_slots'] = list()
+
+        # Return list of reviews
+        for slot in availability_iterator:
+            available_slot = dict()
+            available_slot['date'] = slot[0]
+            available_slot['time'] = slot[1]
+           
+            result['available_slots'].append(available_slot)
+        
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/availability', methods=['POST'])
 def create_availability():
