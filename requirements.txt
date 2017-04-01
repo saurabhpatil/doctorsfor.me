@@ -9,7 +9,7 @@ flask-babel
 guess_language
 flipflop
 coverage
-MySQL-python
+mysqlclient
 gunicorn
 flask-restful
 gevent

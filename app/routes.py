@@ -40,8 +40,8 @@ def search():
 
         # Get search results from doctor, user_profile and review tables
         sql_query = '''select d.doctor_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
-                              d.address, avg(r.score)/
-                        from reviews r doctor_id/
+                              d.address, avg(r.score)
+                        from reviews r doctor_id
                         inner join doctor d on d.doctor_id = r.doctor_id
                         inner join user_profile u on d.profile_id = u.profile_id
                         where d.type = {} or u.city = {}
@@ -135,16 +135,73 @@ def read_appointment():
 
 @app.route('/appointment', methods=['POST'])
 def create_appointment():
-    # Refer this: http://flask.pocoo.org/docs/0.12/quickstart/#accessing-request-data
-    pass
+    result = dict()
+    result['success'] = False
+
+    customer_id = request.form.get('customer_id')
+    doctor_id = request.form.get('doctor_id')
+    date = request.form.get('date')
+    time = request.form.get('time')
+
+    # Check for null data
+    if doctor_id is None or customer_id is None:
+        result['error'] = 'Either doctor_id or customer_id is null.'
+        return result
+    elif date is None or time is None:
+        result['error'] = 'Both date and time are required. check the parameters'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # check if user exists
+        sql_query = 'INSERT INTO appointment(customer_id, doctor_id, date, time) VALUES ({}, {}, {}, {})'\
+                    .format(customer_id, doctor_id, date, time)
+        cursor.execute(sql_query)
+
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/appointment', methods=['PUT'])
 def update_appointment():
     pass
 
-@app.route('/appointment', methods=['DELETE'])
-def delete_appointment():
-    pass
+@app.route('/appointment/<int:id>', methods=['DELETE'])
+def delete_appointment(id):
+    result = dict()
+    result['success'] = False
+    appointment_id = id
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Get id from customer table
+        sql_query = 'DELETE FROM appointment WHERE appointment_id = {}'.format(appointment_id)
+        cursor.execute(sql_query)
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/login', methods=['POST'])
 def user_login():
@@ -155,7 +212,7 @@ def user_login():
     password = request.form.get('password')
 
     # Check for null data
-    if username is None
+    if username is None:
         result['error'] = 'username is null'
         return result
     elif password is None:
@@ -185,12 +242,126 @@ def user_login():
 
 @app.route('/user', methods=['GET'])
 def read_user():
-    pass
+    result = dict()
+    result['success'] = False
+
+    id = request.args.get('id', None)
+    user_type = request.args.get('user_type', None)
+
+    # Check for null data
+    if id is None or user_type is None:
+        result['error'] = 'Either id or user_type is null.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # get doctor or customer info
+        if user_type == 'doctor':
+            sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url,
+                                  d.address, d.experience, d.qualification
+                          FROM doctor d, user_profile u
+                          WHERE d.profile_id = u.profile_id AND d.doctor_id = {}'''\
+                        .format(int(id))
+        else:
+            sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url
+                            FROM customer c, user_profile u
+                            WHERE c.profile_id = u.profile_id AND c.customer_id = {}'''\
+                        .format(int(id))
+        cursor.execute(sql_query)
+        info = cursor.fetchone()
+        info_dict = dict()
+        info_dict['name'] = unicode(info[0])
+        info_dict['city'] = unicode(info[1])
+        info_dict['state'] = unicode(info(2))
+        info_dict['country'] = unicode(info(3))
+        info_dict['phone'] = unicode(info(4))
+        info_dict['email'] = unicode(info(5))
+        info_dict['photo_url'] = unicode(info(6))
+
+        if user_type == 'doctor':
+            info_dict['address'] = unicode(info(7))
+            info_dict['experience'] = int(info(8))
+            info_dict['qualification'] = unicode(info(9))
+
+        result['info'] = info_dict
+
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/user', methods=['POST'])
 def create_user():
-     # Refer this: http://flask.pocoo.org/docs/0.12/quickstart/#accessing-request-data
-    pass
+    result = dict()
+    result['success'] = False
+
+    full_name = request.form.get('name')
+    username = request.form.get('username')
+    password = request.form.get('password')
+    email = request.form.get('email')
+    phone = request.form.get('phone')
+    address = request.form.get('address')
+    city = request.form.get('city')
+    state = request.form.get('state')
+    country = request.form.get('country')
+    user_type = request.form.get('user_type')
+
+    # Check for null data
+    if username is None or password is None or email is None:
+        result['error'] = 'Either username, password or email is null.'
+        return result
+    elif user_type is None:
+        result['error'] = 'User_Type is required'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # check if user exists
+        sql_query = 'SELECT 1 FROM user_profile WHERE username={} or email = {}'.format(username, email)
+        cursor.execute(sql_query)
+        existing_user = cursor.fetchone()
+        if existing_user is not None:
+            result['error'] = 'User already exists'
+            return json.dumps(result)
+
+        # add record to user_profile
+        sql_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) " \
+                    "VALUES('{}','{}','{}','{}','{}','{}','{}','{}');"\
+                    "SET @PROFILE_ID = LAST_INSERT_ID();"\
+                    "IF '{}' = 'doctor' THEN " \
+                    "INSERT INTO doctor(profile_id, location, address) VALUES(@PROFILE_ID,'{}','{}');" \
+                    "ELSE InSERT INTO customer(profile_id) VALUES(@PROFILE_ID);" \
+                    "END IF;"\
+                    .format(username, password, email, phone, full_name, state, city, country, user_type, city, address)
+        print(sql_query)
+        cursor.execute(sql_query)
+
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/user', methods=['PUT'])
 def update_user():
