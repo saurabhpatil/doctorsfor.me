@@ -72,7 +72,7 @@ def update_user():
 
 @app.route('/user/patient/<int:id>', methods=['DELETE'])
 def delete_patient(id):
-
+    """Delete a patient record from database"""
     result = dict()
     result['success'] = False
     profile_id = id
@@ -114,7 +114,7 @@ def delete_patient(id):
 
 @app.route('/user/doctor/<int:id>', methods=['DELETE'])
 def delete_doctor(id):
-
+    """Delete a doctor record from database"""
     result = dict()
     result['success'] = False
     profile_id = id
@@ -161,11 +161,13 @@ def delete_doctor(id):
 
 @app.route('/logout/<user_type>/<int:id>', methods=['POST'])
 def user_logout(user_type, id):
+    """Logs out a user from application"""
     result = dict()
     result['success'] = True
     return json.dumps(result)
 
 @app.route('/review', methods=['GET'])
+"""Reads list of reviews for a doctor"""
 def read_review():
     result = dict()
     result['success'] = False
@@ -227,6 +229,7 @@ def read_review():
 
 @app.route('/review', methods=['POST'])
 def create_review():
+    """Creates a new review for a doctor"""
     result = dict()
     result['success'] = False
 
@@ -258,7 +261,7 @@ def create_review():
         customer_id = cursor.fetchone()
         customer_id = int(customer_id[0])
 
-        # # Insert review in reviews table
+        # Insert review in reviews table
         sql_query = "INSERT INTO reviews(score, comment, customer_id, doctor_id, date) VALUES({},'{}',{},{},'{}')".format(score, comment, customer_id, doctor_id, timestamp)
         print(sql_query)
         cursor.execute(sql_query)
@@ -286,6 +289,7 @@ def delete_review():
 
 @app.route('/availability', methods=['GET'])
 def read_availability():
+    """Read list of available slots for a doctor"""
     result = dict()
     result['success'] = False
 
@@ -341,4 +345,50 @@ def read_availability():
 
 @app.route('/availability', methods=['POST'])
 def create_availability():
-    pass
+    """Create available slots for a doctor"""
+    result = dict()
+    result['success'] = False
+
+    profile_id = request.form.get('id')
+    available_slots = request.form.get('available_slots')   
+
+    # Check for null data
+    if profile_id is None or available_slots is None:
+        result['error'] = 'Either profile_id or user_type is null.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Unpack JSON from request
+        availability_list = json.loads(available_slots)
+        
+
+        # Get doctor_id from doctor table
+        sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(profile_id)
+        cursor.execute(sql_query)
+        doctor_id = cursor.fetchone()
+        doctor_id = int(doctor_id[0])
+
+        # Insert review in reviews table
+        for slot in availability_list:
+            date = slot['date']
+            time = slot['time']
+            sql_query = "INSERT INTO availability(doctor_id, date, time) VALUES({},'{}','{}')".format(doctor_id, date, time)
+            # print(sql_query)
+            cursor.execute(sql_query)
+        
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
