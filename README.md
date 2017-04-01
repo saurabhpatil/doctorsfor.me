@@ -3,8 +3,13 @@
 Web app for DoctorsFor.me
 
 ## User Stories
-- [ ] User can signup for the service and use it. [Saurabh]
-- [x] User can log in to their account and then logout. [Aditya]
+- [ ] Client can search for doctors in an area. 
+- [ ] Client can create, read, update and delete appointments.
+- [ ] Client can login a user.
+- [ ] Client can logout a user.
+- [ ] Client can create, read, update and delete user accounts.
+- [ ] Client can create, read, update and delete reviews.
+- [ ] Client can read and create slots for doctor's availability.
 
 ## Setup
 
@@ -20,5 +25,5 @@ Web app for DoctorsFor.me
 1. Install virtualenv: `pip install virtualenv`
 2. Create virtual environment: `virtualenv venv`
 3. Install dependecies: `pip install -qr requirements.txt`
-4. Set environment variable: SQL_DATABASE_URI to URL of MySQL server
+4. Set environment variable: `SQL_DATABASE_URI` to have value as URL of MySQL server
 4. Run dev: `make run` or prod: `make prod-run`
