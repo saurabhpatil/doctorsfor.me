@@ -167,8 +167,8 @@ def user_logout(user_type, id):
     return json.dumps(result)
 
 @app.route('/review', methods=['GET'])
-"""Reads list of reviews for a doctor"""
 def read_review():
+    """Reads list of reviews for a doctor"""
     result = dict()
     result['success'] = False
 
