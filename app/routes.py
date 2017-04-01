@@ -4,9 +4,6 @@ from config import *
 import os
 import datetime, time
 
-
-''' API here onwards to be built by Saurabh '''
-
 def connect_database():
     try:
         con = mdb.connect(os.environ.get('SQL_DATABASE_URI'), SQL_DATABASE_USER, \
@@ -21,21 +18,120 @@ def connect_database():
 def index():
     return '<h1>Howdy, Ags!</h1><h3>API server is running normally. Refer to API doc on Google Drive for usage.</h3>'
 
+''' API here onwards to be built by Saurabh '''
+
 @app.route('/search', methods=['GET'])
 def search():
-    con = connect_database()
-    cursor = con.cursor()
-    # Example query
-    sql_query = 'SELECT * FROM UserProfile'
-    cursor.execute(sql_query)
-    result_data = cursor.fetchall()
-    cursor.close()
-    con.close()
-    return 'Hello World'
+    result = dict()
+    result['success'] = False
+
+    city = request.args.get('city', None)
+    doctor_type = request.args.get('type', None)
+
+    # Check for null data
+    if city is None and doctor_type is None:
+        result['error'] = 'Either profile_id or user_type is null.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Get search results from doctor, user_profile and review tables
+        sql_query = '''select d.doctor_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
+                              d.address, avg(r.score)/
+                        from reviews r doctor_id/
+                        inner join doctor d on d.doctor_id = r.doctor_id
+                        inner join user_profile u on d.profile_id = u.profile_id
+                        where d.type = {} or u.city = {}
+                        group by d.doctor_id, u.full_name, d.experience, d.type, d.qualification, d.address, u.photo_url''' \
+            .format(type, city)
+        cursor.execute(sql_query)
+        search_iterator = cursor.fetchall()
+        result['search'] = list()
+
+        # Return list of reviews
+        for search_result in search_iterator:
+            search_dict = dict()
+            search_dict['doctor_id'] = int(search_result[0])
+            search_dict['photo_url'] = unicode(search_result[1])
+            search_dict['name'] = unicode(search_result[2])
+            search_dict['qualification'] = unicode(search_result[3])
+            search_dict['experience'] = int(search_result[4])
+            search_dict['address'] = unicode(search_result[6])
+            search_dict['rating'] = float(search_result[7])
+            result['search'].append(search_dict)
+
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = e
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/appointment', methods=['GET'])
 def read_appointment():
-    pass
+    result = dict()
+    result['success'] = False
+
+    profile_id = request.args.get('id', None)
+    user_type = request.args.get('user_type', None)
+
+    # Check for null data
+    if profile_id is None or user_type is None:
+        result['error'] = 'Either profile_id or user_type is null.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Get appointments for doctor or customer
+        if user_type == 'doctor':
+            sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, u.phone
+                            from appointment a, user_profile u
+                            where a.doctor_id = {} and u.profile_id = a.customer_id'''.format(profile_id)
+        else:
+            sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, d.address, u.phone
+                            from appointment a, user_profile u, doctor d
+                            where a.customer_id = {} and u.profile_id = a.doctor_id
+                            and d.profile_id = u.profile_id'''.format(profile_id)
+
+        cursor.execute(sql_query)
+        appointment_iterator = cursor.fetchall()
+        result['appointments'] = list()
+
+        # Return list of reviews
+        for appointment in appointment_iterator:
+            appointment_dict = dict()
+            appointment_dict['appointment_id'] = int(appointment[0])
+            appointment_dict['name'] = unicode(appointment[1])
+            appointment_dict['date'] = unicode(appointment[2])
+            appointment_dict['time'] = unicode(appointment[3])
+            appointment_dict['address'] = unicode(appointment[4]) if user_type == 'patient' else None
+            appointment_dict['phone'] = unicode(appointment[0])
+            result['appointments'].append(search_dict)
+
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = e
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/appointment', methods=['POST'])
 def create_appointment():
@@ -52,8 +148,40 @@ def delete_appointment():
 
 @app.route('/login', methods=['POST'])
 def user_login():
-     # Refer this: http://flask.pocoo.org/docs/0.12/quickstart/#accessing-request-data
-    pass
+    result = dict()
+    result['success'] = False
+
+    username = request.form.get('username')
+    password = request.form.get('password')
+
+    # Check for null data
+    if username is None
+        result['error'] = 'username is null'
+        return result
+    elif password is None:
+        result['error'] = 'password is null'
+        return result
+
+    try:
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Get id from customer table
+        sql_query = 'SELECT 1 FROM user_profile WHERE username={} and password = {}'.format(username, password)
+        cursor.execute(sql_query)
+        login_success = cursor.fetchone()
+
+        if login_success is None:
+            return json.dumps(result)
+
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        return json.dumps(result)
+    finally:
+        con.close()
 
 @app.route('/user', methods=['GET'])
 def read_user():
