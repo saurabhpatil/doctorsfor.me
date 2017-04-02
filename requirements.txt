@@ -1,6 +1,6 @@
 flask
 coverage
-MySQL-python
+mysqlclient
 gunicorn
 gevent
 requests
