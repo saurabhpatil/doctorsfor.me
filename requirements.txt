@@ -5,3 +5,4 @@ gunicorn
 gevent
 requests
 nose
+flask_cors
