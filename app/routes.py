@@ -31,7 +31,7 @@ def search():
     # Check for null data
     if city is None and doctor_type is None:
         result['error'] = 'Either profile_id or user_type is null.'
-        return result
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -39,14 +39,15 @@ def search():
         cursor = con.cursor()
 
         # Get search results from doctor, user_profile and review tables
-        sql_query = '''select d.doctor_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
+        sql_query = '''select d.profile_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
                               d.address, avg(r.score)
-                        from reviews r doctor_id
+                        from reviews r
                         inner join doctor d on d.doctor_id = r.doctor_id
                         inner join user_profile u on d.profile_id = u.profile_id
-                        where d.type = {} or u.city = {}
-                        group by d.doctor_id, u.full_name, d.experience, d.type, d.qualification, d.address, u.photo_url''' \
-            .format(type, city)
+                        where d.type = '{}' or u.city = '{}'
+                        group by d.profile_id, u.full_name, d.experience, d.type, d.qualification, d.address, u.photo_url''' \
+            .format(doctor_type, city)
+        print(sql_query)
         cursor.execute(sql_query)
         search_iterator = cursor.fetchall()
         result['search'] = list()
@@ -55,11 +56,11 @@ def search():
         for search_result in search_iterator:
             search_dict = dict()
             search_dict['doctor_id'] = int(search_result[0])
-            search_dict['photo_url'] = unicode(search_result[1])
-            search_dict['name'] = unicode(search_result[2])
-            search_dict['qualification'] = unicode(search_result[3])
+            search_dict['photo_url'] = str(search_result[1])
+            search_dict['name'] = str(search_result[2])
+            search_dict['qualification'] = str(search_result[3])
             search_dict['experience'] = int(search_result[4])
-            search_dict['address'] = unicode(search_result[6])
+            search_dict['address'] = str(search_result[6])
             search_dict['rating'] = float(search_result[7])
             result['search'].append(search_dict)
 
@@ -113,12 +114,12 @@ def read_appointment():
         for appointment in appointment_iterator:
             appointment_dict = dict()
             appointment_dict['appointment_id'] = int(appointment[0])
-            appointment_dict['name'] = unicode(appointment[1])
-            appointment_dict['date'] = unicode(appointment[2])
-            appointment_dict['time'] = unicode(appointment[3])
-            appointment_dict['address'] = unicode(appointment[4]) if user_type == 'patient' else None
-            appointment_dict['phone'] = unicode(appointment[0])
-            result['appointments'].append(search_dict)
+            appointment_dict['name'] = str(appointment[1])
+            appointment_dict['date'] = str(appointment[2])
+            appointment_dict['time'] = str(appointment[3])
+            appointment_dict['address'] = str(appointment[4]) if user_type == 'patient' else None
+            appointment_dict['phone'] = str(appointment[0])
+            result['appointments'].append(appointment_dict)
 
         # Close connections
         cursor.close()
@@ -159,6 +160,7 @@ def create_appointment():
         # check if user exists
         sql_query = 'INSERT INTO appointment(customer_id, doctor_id, date, time) VALUES ({}, {}, {}, {})'\
                     .format(customer_id, doctor_id, date, time)
+        print(sql_query)
         cursor.execute(sql_query)
 
         # Close connections
@@ -214,17 +216,17 @@ def user_login():
     # Check for null data
     if username is None:
         result['error'] = 'username is null'
-        return result
+        return json.dumps(result)
     elif password is None:
         result['error'] = 'password is null'
-        return result
+        return json.dumps(result)
 
     try:
         con = connect_database()
         cursor = con.cursor()
 
         # Get id from customer table
-        sql_query = 'SELECT 1 FROM user_profile WHERE username={} and password = {}'.format(username, password)
+        sql_query = "SELECT 1 FROM user_profile WHERE username='{}' and password = '{}'".format(username, password)
         cursor.execute(sql_query)
         login_success = cursor.fetchone()
 
@@ -263,28 +265,28 @@ def read_user():
             sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url,
                                   d.address, d.experience, d.qualification
                           FROM doctor d, user_profile u
-                          WHERE d.profile_id = u.profile_id AND d.doctor_id = {}'''\
+                          WHERE d.profile_id = u.profile_id AND d.profile_id = {}'''\
                         .format(int(id))
         else:
-            sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url
-                            FROM customer c, user_profile u
-                            WHERE c.profile_id = u.profile_id AND c.customer_id = {}'''\
+            sql_query = '''SELECT full_name, city, state, country, phone, email, photo_url
+                            FROM user_profile
+                            WHERE profile_id = {}'''\
                         .format(int(id))
         cursor.execute(sql_query)
         info = cursor.fetchone()
         info_dict = dict()
-        info_dict['name'] = unicode(info[0])
-        info_dict['city'] = unicode(info[1])
-        info_dict['state'] = unicode(info(2))
-        info_dict['country'] = unicode(info(3))
-        info_dict['phone'] = unicode(info(4))
-        info_dict['email'] = unicode(info(5))
-        info_dict['photo_url'] = unicode(info(6))
+        info_dict['name'] = str(info[0])
+        info_dict['city'] = str(info[1])
+        info_dict['state'] = str(info(2))
+        info_dict['country'] = str(info(3))
+        info_dict['phone'] = str(info(4))
+        info_dict['email'] = str(info(5))
+        info_dict['photo_url'] = str(info(6))
 
         if user_type == 'doctor':
-            info_dict['address'] = unicode(info(7))
+            info_dict['address'] = str(info(7))
             info_dict['experience'] = int(info(8))
-            info_dict['qualification'] = unicode(info(9))
+            info_dict['qualification'] = str(info(9))
 
         result['info'] = info_dict
 
@@ -320,10 +322,10 @@ def create_user():
     # Check for null data
     if username is None or password is None or email is None:
         result['error'] = 'Either username, password or email is null.'
-        return result
+        return json.dumps(result)
     elif user_type is None:
         result['error'] = 'User_Type is required'
-        return result
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -331,8 +333,9 @@ def create_user():
         cursor = con.cursor()
 
         # check if user exists
-        sql_query = 'SELECT 1 FROM user_profile WHERE username={} or email = {}'.format(username, email)
+        sql_query = "SELECT 1 FROM user_profile WHERE username='{}' or email = '{}'".format(username, email)
         cursor.execute(sql_query)
+        print(sql_query)
         existing_user = cursor.fetchone()
         if existing_user is not None:
             result['error'] = 'User already exists'
@@ -340,14 +343,19 @@ def create_user():
 
         # add record to user_profile
         sql_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) " \
-                    "VALUES('{}','{}','{}','{}','{}','{}','{}','{}');"\
-                    "SET @PROFILE_ID = LAST_INSERT_ID();"\
-                    "IF '{}' = 'doctor' THEN " \
-                    "INSERT INTO doctor(profile_id, location, address) VALUES(@PROFILE_ID,'{}','{}');" \
-                    "ELSE InSERT INTO customer(profile_id) VALUES(@PROFILE_ID);" \
-                    "END IF;"\
-                    .format(username, password, email, phone, full_name, state, city, country, user_type, city, address)
+                    "VALUES('{}','{}','{}','{}','{}','{}','{}','{}')"\
+                    .format(username, password, email, phone, full_name, state, city, country)
         print(sql_query)
+        cursor.execute(sql_query)
+
+        sql_query = "SELECT max(profile_id) FROM user_profile"
+        cursor.execute(sql_query)
+        profile_id = int(cursor.fetchone()[0])
+
+        if user_type == 'doctor':
+            sql_query = "INSERT INTO doctor(profile_id, address) VALUES ({}, {})".format(profile_id, address)
+        else:
+            sql_query = "INSERT INTO customer(profile_id) VALUES ({})".format(profile_id)
         cursor.execute(sql_query)
 
         # Close connections
@@ -507,8 +515,8 @@ def read_review():
             review_dict = dict()
             review_dict['review_id'] = int(review[0])
             review_dict['score'] = int(review[1])
-            review_dict['comment'] = unicode(review[2])
-            review_dict['full_name'] = unicode(review[3])
+            review_dict['comment'] = str(review[2])
+            review_dict['full_name'] = str(review[3])
             result['reviews'].append(review_dict)
         
         # Close connections
