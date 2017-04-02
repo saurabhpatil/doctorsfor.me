@@ -98,13 +98,17 @@ def read_appointment():
         # Get appointments for doctor or customer
         if user_type == 'doctor':
             sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, u.phone
-                            from appointment a, user_profile u
-                            where a.doctor_id = {} and u.profile_id = a.customer_id'''.format(profile_id)
+                            from appointment a, user_profile u, doctor d
+                            where d.profile_id = {}
+                            and a.doctor_id = d.doctor_id
+                            and u.profile_id = a.customer_id'''.format(profile_id)
         else:
             sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, d.address, u.phone
-                            from appointment a, user_profile u, doctor d
-                            where a.customer_id = {} and u.profile_id = a.doctor_id
-                            and d.profile_id = u.profile_id'''.format(profile_id)
+                            from appointment a, user_profile u, doctor d, customer C
+                            where c.customer_id = {}
+                            and a.customer_id = c.customer_id
+                            and d.doctor_id = a.doctor_id
+                            and u.profile_id = d.profile_id'''.format(profile_id)
 
         cursor.execute(sql_query)
         appointment_iterator = cursor.fetchall()
