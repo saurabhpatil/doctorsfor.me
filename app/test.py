@@ -13,11 +13,11 @@ class RoutesTestCase(unittest.TestCase):
     def test_delete_patient(self):
         cursor = self.con.cursor()
         
-        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name) VALUES('test_patient','test','test@email.com','1234567890','Test User')"
+        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) VALUES('test_patient','test','test@email.com','1234567890','Test User','Texas','Austin','USA')"
         # print(insert_query)
         cursor.execute(insert_query)
 
-        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name) VALUES('test_doctor','test','test1@email.com','1234567890','Test User')"
+        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) VALUES('test_doctor','test','test1@email.com','1234567890','Test User','Texas','Austin','USA')"
         # print(insert_query)
         cursor.execute(insert_query)
 
@@ -48,7 +48,7 @@ class RoutesTestCase(unittest.TestCase):
         patient_id = int(patient_id[0])
         self.assertIsNotNone(patient_id)
 
-        insert_query = "INSERT INTO doctor(profile_id, experience, type, qualification, location, total_rating, address) VALUES({}, 17, 'Dentist', 'MD', 'Austin', 5.0, 'Austin')".format(doctor_profile_id)
+        insert_query = "INSERT INTO doctor(profile_id, experience, type, qualification, total_rating, address) VALUES({}, 17, 'Dentist', 'MD', 5.0, 'Austin')".format(doctor_profile_id)
         # print(insert_query)
         cursor.execute(insert_query)
 
@@ -83,11 +83,11 @@ class RoutesTestCase(unittest.TestCase):
     def test_delete_doctor(self):
         cursor = self.con.cursor()
         
-        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name) VALUES('test_patient','test','test@email.com','1234567890','Test User')"
+        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) VALUES('test_patient','test','test@email.com','1234567890','Test User','Texas','Austin','USA')"
         # print(insert_query)
         cursor.execute(insert_query)
 
-        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name) VALUES('test_doctor','test','test1@email.com','1234567890','Test User')"
+        insert_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) VALUES('test_doctor','test','test1@email.com','1234567890','Test User','Texas','Austin','USA')"
         # print(insert_query)
         cursor.execute(insert_query)
 
@@ -118,7 +118,7 @@ class RoutesTestCase(unittest.TestCase):
         patient_id = int(patient_id[0])
         self.assertIsNotNone(patient_id)
 
-        insert_query = "INSERT INTO doctor(profile_id, experience, type, qualification, location, total_rating, address) VALUES({}, 17, 'Dentist', 'MD', 'Austin', 5.0, 'Austin')".format(doctor_profile_id)
+        insert_query = "INSERT INTO doctor(profile_id, experience, type, qualification, total_rating, address) VALUES({}, 17, 'Dentist', 'MD', 5.0, 'Austin')".format(doctor_profile_id)
         # print(insert_query)
         cursor.execute(insert_query)
 

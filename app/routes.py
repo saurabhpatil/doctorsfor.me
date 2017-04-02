@@ -29,7 +29,7 @@ def search():
     doctor_type = request.args.get('type', None)
 
     # Check for null data
-    if city is None and doctor_type is None:
+    if city is None or doctor_type is None:
         result['error'] = 'Either profile_id or user_type is null.'
         return json.dumps(result)
 
@@ -39,13 +39,15 @@ def search():
         cursor = con.cursor()
 
         # Get search results from doctor, user_profile and review tables
-        sql_query = '''select d.profile_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
-                              d.address, avg(r.score)
-                        from reviews r
-                        inner join doctor d on d.doctor_id = r.doctor_id
-                        inner join user_profile u on d.profile_id = u.profile_id
-                        where d.type = '{}' or u.city = '{}'
-                        group by d.profile_id, u.full_name, d.experience, d.type, d.qualification, d.address, u.photo_url''' \
+        sql_query = '''select D.profile_id, U.photo_url, U.full_name, D.qualification, D.experience, D.type,
+                              D.address, 
+                              CASE WHEN AVG(R.score) IS NULL THEN 5.0000
+                              ELSE AVG(R.score) END from 
+                            user_profile AS U
+                            INNER JOIN doctor AS D ON U.profile_id=D.profile_id
+                            LEFT OUTER JOIN reviews AS R ON D.doctor_id=R.doctor_id
+                            WHERE D.type='{}' AND U.city='{}'
+                            GROUP BY D.doctor_id''' \
             .format(doctor_type, city)
         print(sql_query)
         cursor.execute(sql_query)
@@ -60,6 +62,7 @@ def search():
             search_dict['name'] = str(search_result[2])
             search_dict['qualification'] = str(search_result[3])
             search_dict['experience'] = int(search_result[4])
+            search_dict['type'] = str(search_result[5])
             search_dict['address'] = str(search_result[6])
             search_dict['rating'] = float(search_result[7])
             result['search'].append(search_dict)
@@ -502,11 +505,11 @@ def read_review():
         doctor_id = int(doctor_id[0])
 
         # Get list of reviews from reviews table
-        sql_query = "SELECT R.review_id, R.score, R.comment, U.full_name \
-                     FROM reviews as R \
-                     INNER JOIN customer as C ON R.customer_id=C.customer_id \
-                     INNER JOIN user_profile as U ON C.profile_id=U.profile_id \
-                     WHERE R.doctor_id={}".format(doctor_id)
+        sql_query = "SELECT R.review_id, R.score, R.comment, U.full_name" \
+                    "FROM reviews as R" \
+                    "INNER JOIN customer as C ON R.customer_id=C.customer_id" \
+                    "INNER JOIN user_profile as U ON C.profile_id=U.profile_id"\
+                    "WHERE R.doctor_id={}".format(doctor_id)
         cursor.execute(sql_query)
         reviews_iterator = cursor.fetchall()
 
