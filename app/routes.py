@@ -40,10 +40,10 @@ def search():
 
         # Get search results from doctor, user_profile and review tables
         sql_query = '''select D.profile_id, U.photo_url, U.full_name, D.qualification, D.experience, D.type,
-                              D.address, 
+                              D.address, U.city, U.state, U.country,
                               CASE WHEN AVG(R.score) IS NULL THEN 5.0000
-                              ELSE AVG(R.score) END from 
-                            user_profile AS U
+                              ELSE AVG(R.score) END
+                            FROM user_profile AS U
                             INNER JOIN doctor AS D ON U.profile_id=D.profile_id
                             LEFT OUTER JOIN reviews AS R ON D.doctor_id=R.doctor_id
                             WHERE D.type='{}' AND U.city='{}'
@@ -53,18 +53,17 @@ def search():
         cursor.execute(sql_query)
         search_iterator = cursor.fetchall()
         result['search'] = list()
-
+        for search_result in search_iterator:
             search_dict = dict()
             search_dict['doctor_id'] = int(search_result[0])
             search_dict['photo_url'] = str(search_result[1])
             search_dict['name'] = str(search_result[2])
             search_dict['qualification'] = str(search_result[3])
             search_dict['experience'] = int(search_result[4])
+            search_dict['type'] = str(search_result[5])
             search_dict['address'] = str(search_result[6]) + ', ' + str(search_result[7]) + ', ' + str(search_result[8])\
                                      + ', ' + str(search_result[9])
             search_dict['rating'] = float(search_result[10])
-            search_dict['type'] = str(search_result[5])
-            search_dict['rating'] = float(search_result[7])
             result['search'].append(search_dict)
 
         # Close connections
@@ -233,13 +232,14 @@ def user_login():
         cursor = con.cursor()
 
         # Get id from customer table
-        sql_query = "SELECT profile_id as id FROM user_profile WHERE username='{}' and password = '{}'".format(username, password)
+        sql_query = "SELECT profile_id, full_name as id FROM user_profile WHERE username='{}' and password = '{}'".format(username, password)
         cursor.execute(sql_query)
         login_success = cursor.fetchone()
         if login_success is None:
             return json.dumps(result)
         else:
             profile_id = login_success[0]
+            full_name = login_success[1]
             sql_query = "SELECT 1 FROM customer WHERE profile_id={}".format(profile_id)
             cursor.execute(sql_query)
             if cursor.fetchone() is not None:
@@ -247,6 +247,7 @@ def user_login():
             else:
                 result['user_type'] = 'doctor'
             result['profile_id'] = profile_id
+            result['full_name'] = full_name
 
         result['success'] = True
         return json.dumps(result)
