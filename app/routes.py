@@ -29,7 +29,7 @@ def search():
     doctor_type = request.args.get('type', None)
 
     # Check for null data
-    if city is None and doctor_type is None:
+    if city is None or doctor_type is None:
         result['error'] = 'Either profile_id or user_type is null.'
         return json.dumps(result)
 
@@ -39,21 +39,21 @@ def search():
         cursor = con.cursor()
 
         # Get search results from doctor, user_profile and review tables
-        sql_query = '''select d.profile_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
-                              d.address, u.city, u.state, u.country, avg(r.score)
-                        from reviews r
-                        inner join doctor d on d.doctor_id = r.doctor_id
-                        inner join user_profile u on d.profile_id = u.profile_id
-                        where d.type = '{}' or u.city = '{}'
-                        group by d.profile_id, u.full_name, d.experience, d.type, d.qualification, d.address, u.photo_url''' \
+        sql_query = '''select D.profile_id, U.photo_url, U.full_name, D.qualification, D.experience, D.type,
+                              D.address, 
+                              CASE WHEN AVG(R.score) IS NULL THEN 5.0000
+                              ELSE AVG(R.score) END from 
+                            user_profile AS U
+                            INNER JOIN doctor AS D ON U.profile_id=D.profile_id
+                            LEFT OUTER JOIN reviews AS R ON D.doctor_id=R.doctor_id
+                            WHERE D.type='{}' AND U.city='{}'
+                            GROUP BY D.doctor_id''' \
             .format(doctor_type, city)
         print(sql_query)
         cursor.execute(sql_query)
         search_iterator = cursor.fetchall()
         result['search'] = list()
 
-        # Return list of reviews
-        for search_result in search_iterator:
             search_dict = dict()
             search_dict['doctor_id'] = int(search_result[0])
             search_dict['photo_url'] = str(search_result[1])
@@ -63,6 +63,8 @@ def search():
             search_dict['address'] = str(search_result[6]) + ', ' + str(search_result[7]) + ', ' + str(search_result[8])\
                                      + ', ' + str(search_result[9])
             search_dict['rating'] = float(search_result[10])
+            search_dict['type'] = str(search_result[5])
+            search_dict['rating'] = float(search_result[7])
             result['search'].append(search_dict)
 
         # Close connections
@@ -392,7 +394,7 @@ def update_user():
 
 @app.route('/user/patient/<int:id>', methods=['DELETE'])
 def delete_patient(id):
-
+    """Delete a patient record from database"""
     result = dict()
     result['success'] = False
     profile_id = id
@@ -434,7 +436,7 @@ def delete_patient(id):
 
 @app.route('/user/doctor/<int:id>', methods=['DELETE'])
 def delete_doctor(id):
-
+    """Delete a doctor record from database"""
     result = dict()
     result['success'] = False
     profile_id = id
@@ -481,12 +483,14 @@ def delete_doctor(id):
 
 @app.route('/logout/<user_type>/<int:id>', methods=['POST'])
 def user_logout(user_type, id):
+    """Logs out a user from application"""
     result = dict()
     result['success'] = True
     return json.dumps(result)
 
 @app.route('/review', methods=['GET'])
 def read_review():
+    """Reads list of reviews for a doctor"""
     result = dict()
     result['success'] = False
 
@@ -513,11 +517,11 @@ def read_review():
         doctor_id = int(doctor_id[0])
 
         # Get list of reviews from reviews table
-        sql_query = "SELECT R.review_id, R.score, R.comment, U.full_name \
-                     FROM reviews as R \
-                     INNER JOIN customer as C ON R.customer_id=C.customer_id \
-                     INNER JOIN user_profile as U ON C.profile_id=U.profile_id \
-                     WHERE R.doctor_id={}".format(doctor_id)
+        sql_query = "SELECT R.review_id, R.score, R.comment, U.full_name" \
+                    "FROM reviews as R" \
+                    "INNER JOIN customer as C ON R.customer_id=C.customer_id" \
+                    "INNER JOIN user_profile as U ON C.profile_id=U.profile_id"\
+                    "WHERE R.doctor_id={}".format(doctor_id)
         cursor.execute(sql_query)
         reviews_iterator = cursor.fetchall()
 
@@ -547,6 +551,7 @@ def read_review():
 
 @app.route('/review', methods=['POST'])
 def create_review():
+    """Creates a new review for a doctor"""
     result = dict()
     result['success'] = False
 
@@ -578,7 +583,7 @@ def create_review():
         customer_id = cursor.fetchone()
         customer_id = int(customer_id[0])
 
-        # # Insert review in reviews table
+        # Insert review in reviews table
         sql_query = "INSERT INTO reviews(score, comment, customer_id, doctor_id, date) VALUES({},'{}',{},{},'{}')".format(score, comment, customer_id, doctor_id, timestamp)
         print(sql_query)
         cursor.execute(sql_query)
@@ -606,6 +611,7 @@ def delete_review():
 
 @app.route('/availability', methods=['GET'])
 def read_availability():
+    """Read list of available slots for a doctor"""
     result = dict()
     result['success'] = False
 
@@ -661,4 +667,50 @@ def read_availability():
 
 @app.route('/availability', methods=['POST'])
 def create_availability():
-    pass
+    """Create available slots for a doctor"""
+    result = dict()
+    result['success'] = False
+
+    profile_id = request.form.get('id')
+    available_slots = request.form.get('available_slots')   
+
+    # Check for null data
+    if profile_id is None or available_slots is None:
+        result['error'] = 'Either profile_id or user_type is null.'
+        return result
+
+    try:
+        # Connect to database
+        con = connect_database()
+        cursor = con.cursor()
+
+        # Unpack JSON from request
+        availability_list = json.loads(available_slots)
+        
+
+        # Get doctor_id from doctor table
+        sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(profile_id)
+        cursor.execute(sql_query)
+        doctor_id = cursor.fetchone()
+        doctor_id = int(doctor_id[0])
+
+        # Insert review in reviews table
+        for slot in availability_list:
+            date = slot['date']
+            time = slot['time']
+            sql_query = "INSERT INTO availability(doctor_id, date, time) VALUES({},'{}','{}')".format(doctor_id, date, time)
+            # print(sql_query)
+            cursor.execute(sql_query)
+        
+        # Close connections
+        cursor.close()
+        con.commit()
+        result['success'] = True
+        return json.dumps(result)
+
+    except Exception as e:
+        con.rollback()
+        result['error'] = str(e)
+        return json.dumps(result)
+    finally:
+        con.close()
