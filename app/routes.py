@@ -230,12 +230,20 @@ def user_login():
         cursor = con.cursor()
 
         # Get id from customer table
-        sql_query = "SELECT 1 FROM user_profile WHERE username='{}' and password = '{}'".format(username, password)
+        sql_query = "SELECT profile_id as id FROM user_profile WHERE username='{}' and password = '{}'".format(username, password)
         cursor.execute(sql_query)
         login_success = cursor.fetchone()
-
         if login_success is None:
             return json.dumps(result)
+        else:
+            profile_id = login_success[0]
+            sql_query = "SELECT 1 FROM customer WHERE profile_id={}".format(profile_id)
+            cursor.execute(sql_query)
+            if cursor.fetchone() is not None:
+                result['user_type'] = 'customer'
+            else:
+                result['user_type'] = 'doctor'
+            result['profile_id'] = profile_id
 
         result['success'] = True
         return json.dumps(result)
@@ -257,7 +265,7 @@ def read_user():
     # Check for null data
     if id is None or user_type is None:
         result['error'] = 'Either id or user_type is null.'
-        return result
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -281,16 +289,16 @@ def read_user():
         info_dict = dict()
         info_dict['name'] = str(info[0])
         info_dict['city'] = str(info[1])
-        info_dict['state'] = str(info(2))
-        info_dict['country'] = str(info(3))
-        info_dict['phone'] = str(info(4))
-        info_dict['email'] = str(info(5))
-        info_dict['photo_url'] = str(info(6))
-
+        info_dict['state'] = str(info[2])
+        info_dict['country'] = str(info[3])
+        info_dict['phone'] = str(info[4])
+        info_dict['email'] = str(info[5])
+        info_dict['photo_url'] = str(info[6])
+        print(info_dict)
         if user_type == 'doctor':
-            info_dict['address'] = str(info(7))
-            info_dict['experience'] = int(info(8))
-            info_dict['qualification'] = str(info(9))
+            info_dict['address'] = str(info[7])
+            info_dict['experience'] = int(info[8])
+            info_dict['qualification'] = str(info[9])
 
         result['info'] = info_dict
 
