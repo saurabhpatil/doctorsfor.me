@@ -40,7 +40,7 @@ def search():
 
         # Get search results from doctor, user_profile and review tables
         sql_query = '''select d.profile_id, u.photo_url, u.full_name, d.qualification, d.experience, d.type,
-                              d.address, avg(r.score)
+                              d.address, u.city, u.state, u.country, avg(r.score)
                         from reviews r
                         inner join doctor d on d.doctor_id = r.doctor_id
                         inner join user_profile u on d.profile_id = u.profile_id
@@ -60,8 +60,9 @@ def search():
             search_dict['name'] = str(search_result[2])
             search_dict['qualification'] = str(search_result[3])
             search_dict['experience'] = int(search_result[4])
-            search_dict['address'] = str(search_result[6])
-            search_dict['rating'] = float(search_result[7])
+            search_dict['address'] = str(search_result[6]) + ', ' + str(search_result[7]) + ', ' + str(search_result[8])\
+                                     + ', ' + str(search_result[9])
+            search_dict['rating'] = float(search_result[10])
             result['search'].append(search_dict)
 
         # Close connections
