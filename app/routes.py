@@ -90,7 +90,7 @@ def read_appointment():
     # Check for null data
     if profile_id is None or user_type is None:
         result['error'] = 'Either profile_id or user_type is null.'
-        return result
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -105,9 +105,9 @@ def read_appointment():
                             and a.doctor_id = d.doctor_id
                             and u.profile_id = a.customer_id'''.format(profile_id)
         else:
-            sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, d.address, u.phone
-                            from appointment a, user_profile u, doctor d, customer C
-                            where c.customer_id = {}
+            sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, u.phone, d.address
+                            from appointment a, user_profile u, doctor d, customer c
+                            where c.profile_id = {}
                             and a.customer_id = c.customer_id
                             and d.doctor_id = a.doctor_id
                             and u.profile_id = d.profile_id'''.format(profile_id)
@@ -123,8 +123,8 @@ def read_appointment():
             appointment_dict['name'] = str(appointment[1])
             appointment_dict['date'] = str(appointment[2])
             appointment_dict['time'] = str(appointment[3])
-            appointment_dict['address'] = str(appointment[4]) if user_type == 'patient' else None
-            appointment_dict['phone'] = str(appointment[0])
+            appointment_dict['phone'] = str(appointment[4])
+            appointment_dict['address'] = str(appointment[5]) if user_type == 'patient' else None
             result['appointments'].append(appointment_dict)
 
         # Close connections
@@ -135,7 +135,7 @@ def read_appointment():
 
     except Exception as e:
         con.rollback()
-        result['error'] = e
+        result['error'] = str(e)
         return json.dumps(result)
     finally:
         con.close()
@@ -153,10 +153,10 @@ def create_appointment():
     # Check for null data
     if doctor_id is None or customer_id is None:
         result['error'] = 'Either doctor_id or customer_id is null.'
-        return result
+        return json.dumps(result)
     elif date is None or time is None:
         result['error'] = 'Both date and time are required. check the parameters'
-        return result
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -164,10 +164,17 @@ def create_appointment():
         cursor = con.cursor()
 
         # check if user exists
-        sql_query = 'INSERT INTO appointment(customer_id, doctor_id, date, time) VALUES ({}, {}, {}, {})'\
-                    .format(customer_id, doctor_id, date, time)
-        print(sql_query)
+        sql_query = '''INSERT INTO appointment(customer_id, doctor_id, date, time)
+                        SELECT c.customer_id, d.doctor_id, '{}', '{}'
+                        FROM customer c, doctor d
+                        WHERE c.profile_id = {} AND d.profile_id = {}'''\
+                    .format(date, time, customer_id, doctor_id)
         cursor.execute(sql_query)
+
+        sql_query = 'SELECT MAX(appointment_id) FROM appointment'
+        cursor.execute(sql_query)
+        appointment_id = cursor.fetchone()[0]
+        result['appointment_id'] = appointment_id
 
         # Close connections
         cursor.close()
@@ -192,6 +199,10 @@ def delete_appointment(id):
     result['success'] = False
     appointment_id = id
 
+    if appointment_id is None:
+        result['error'] = 'appointment_id is not provided'
+        return json.dumps(result)
+
     try:
         # Connect to database
         con = connect_database()
@@ -207,6 +218,7 @@ def delete_appointment(id):
 
     except Exception as e:
         con.rollback()
+        result['error'] = str(e)
         return json.dumps(result)
     finally:
         con.close()
@@ -431,6 +443,7 @@ def delete_patient(id):
 
     except Exception as e:
         con.rollback()
+        result['error'] = e
         return json.dumps(result)
     finally:
         con.close()
@@ -476,7 +489,7 @@ def delete_doctor(id):
 
     except Exception as e:
         con.rollback()
-        result['error'] = e 
+        result['error'] = str(e)
         return json.dumps(result)
     finally:
         con.close()
