@@ -578,17 +578,23 @@ def create_review():
     user_type = request.form.get('user_type')
     doctor_id = request.form.get('doctor_id')
     score = request.form.get('score')
-    comment = request.form.get('comment')
+    comment = request.form.get('comment') 
+
+    print(comment)
+
     ts = time.time()
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
     # Check for null data
     if profile_id is None or user_type is None:
         result['error'] = 'Either profile_id or user_type is null.'
-        return result
+        return json.dumps(result)
     elif user_type != 'patient':
         result['error'] = 'Request should contain patient as user_type.'
-        return result
+        return json.dumps(result)
+    elif score is None:
+        result['error'] = '[Missing Score] Score for review is compulsory field.'
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -597,14 +603,19 @@ def create_review():
 
         # Get customer_id from customer table
         sql_query = 'SELECT customer_id FROM customer WHERE profile_id={}'.format(profile_id)
-        print(sql_query)
         cursor.execute(sql_query)
         customer_id = cursor.fetchone()
         customer_id = int(customer_id[0])
 
+        # Get doctor_id from customer table
+        sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(doctor_id)
+        cursor.execute(sql_query)
+        doctor_id = cursor.fetchone()
+        doctor_id = int(doctor_id[0])
+
         # Insert review in reviews table
         sql_query = "INSERT INTO reviews(score, comment, customer_id, doctor_id, date) VALUES({},'{}',{},{},'{}')".format(score, comment, customer_id, doctor_id, timestamp)
-        print(sql_query)
+        
         cursor.execute(sql_query)
         
         # Close connections
