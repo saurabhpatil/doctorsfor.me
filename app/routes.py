@@ -518,10 +518,10 @@ def read_review():
     # Check for null data
     if profile_id is None or user_type is None:
         result['error'] = 'Either profile_id or user_type is null.'
-        return result
+        return json.dumps(result)
     elif user_type != 'doctor':
         result['error'] = 'Request should contain doctor as user_type.'
-        return result
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -535,11 +535,12 @@ def read_review():
         doctor_id = int(doctor_id[0])
 
         # Get list of reviews from reviews table
-        sql_query = "SELECT R.review_id, R.score, R.comment, U.full_name" \
-                    "FROM reviews as R" \
-                    "INNER JOIN customer as C ON R.customer_id=C.customer_id" \
-                    "INNER JOIN user_profile as U ON C.profile_id=U.profile_id"\
+        sql_query = "SELECT R.review_id, R.score, R.comment, U.full_name " \
+                    "FROM reviews as R " \
+                    "INNER JOIN customer as C ON R.customer_id=C.customer_id " \
+                    "INNER JOIN user_profile as U ON C.profile_id=U.profile_id "\
                     "WHERE R.doctor_id={}".format(doctor_id)
+        print(sql_query)
         cursor.execute(sql_query)
         reviews_iterator = cursor.fetchall()
 
