@@ -63,7 +63,7 @@ def search():
             search_dict['type'] = str(search_result[5])
             search_dict['address'] = str(search_result[6]) + ', ' + str(search_result[7]) + ', ' + str(search_result[8])\
                                      + ', ' + str(search_result[9])
-            search_dict['rating'] = float(search_result[10])
+            search_dict['rating'] = int(round(float(search_result[10])))
             result['search'].append(search_dict)
 
         # Close connections
