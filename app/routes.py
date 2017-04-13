@@ -99,13 +99,13 @@ def read_appointment():
 
         # Get appointments for doctor or customer
         if user_type == 'doctor':
-            sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, u.phone
+            sql_query = '''select a.appointment_id, a.customer_id, u.full_name, a.date, a.time, u.phone
                             from appointment a, user_profile u, doctor d
                             where d.profile_id = {}
                             and a.doctor_id = d.doctor_id
                             and u.profile_id = a.customer_id'''.format(profile_id)
         else:
-            sql_query = '''select a.appointment_id, u.full_name, a.date, a.time, u.phone, d.address
+            sql_query = '''select a.appointment_id, a.doctor_id, u.full_name, a.date, a.time, u.phone, d.address
                             from appointment a, user_profile u, doctor d, customer c
                             where c.profile_id = {}
                             and a.customer_id = c.customer_id
@@ -120,11 +120,15 @@ def read_appointment():
         for appointment in appointment_iterator:
             appointment_dict = dict()
             appointment_dict['appointment_id'] = int(appointment[0])
-            appointment_dict['name'] = str(appointment[1])
-            appointment_dict['date'] = str(appointment[2])
-            appointment_dict['time'] = str(appointment[3])
-            appointment_dict['phone'] = str(appointment[4])
-            appointment_dict['address'] = str(appointment[5]) if user_type == 'patient' else None
+            appointment_dict['name'] = str(appointment[2])
+            appointment_dict['date'] = str(appointment[3])
+            appointment_dict['time'] = str(appointment[4])
+            appointment_dict['phone'] = str(appointment[5])
+            if user_type == 'patient':
+                appointment_dict['doctor_id'] = str(appointment[1])
+                appointment_dict['address'] = str(appointment[6])
+            else:
+                appointment_dict['customer_id'] = str(appointment[1])
             result['appointments'].append(appointment_dict)
 
         # Close connections
