@@ -296,12 +296,12 @@ def read_user():
         # get doctor or customer info
         if user_type == 'doctor':
             sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url,
-                                  d.address, d.experience, d.qualification
+                                  u.address, d.experience, d.qualification
                           FROM doctor d, user_profile u
                           WHERE d.profile_id = u.profile_id AND d.profile_id = {}'''\
                         .format(int(id))
         else:
-            sql_query = '''SELECT full_name, city, state, country, phone, email, photo_url
+            sql_query = '''SELECT full_name, city, state, country, phone, email, photo_url, address
                             FROM user_profile
                             WHERE profile_id = {}'''\
                         .format(int(id))
@@ -375,9 +375,9 @@ def create_user():
             return json.dumps(result)
 
         # add record to user_profile
-        sql_query = "INSERT INTO user_profile(username, password, email, phone, full_name, state, city, country) " \
-                    "VALUES('{}','{}','{}','{}','{}','{}','{}','{}')"\
-                    .format(username, password, email, phone, full_name, state, city, country)
+        sql_query = "INSERT INTO user_profile(username, password, email, phone, full_name, address, state, city, country) " \
+                    "VALUES('{}','{}','{}','{}','{}','{}','{}','{}','{}')"\
+                    .format(username, password, email, phone, full_name, address, state, city, country)
         print(sql_query)
         cursor.execute(sql_query)
 
@@ -665,11 +665,11 @@ def read_availability():
         # Get doctor_id from doctor table
         sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(profile_id)
         cursor.execute(sql_query)
-        doctor_id = cursor.fetchone()
-        doctor_id = int(doctor_id[0])
+        doctor_id = int(cursor.fetchone()[0])
 
         # Get list of reviews from reviews table
-        sql_query = "SELECT date, time FROM availability WHERE doctor_id={}".format(doctor_id)
+        sql_query ='''SELECT date, time FROM availability
+                      WHERE doctor_id={} and DATE(date) > CURDATE()'''.format(doctor_id)
         cursor.execute(sql_query)
         availability_iterator = cursor.fetchall()
 
