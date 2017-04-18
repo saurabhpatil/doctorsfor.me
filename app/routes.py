@@ -575,8 +575,7 @@ def create_review():
     result = dict()
     result['success'] = False
 
-    profile_id = request.form.get('id')
-    user_type = request.form.get('user_type')
+    customer_id = request.form.get('id')
     doctor_id = request.form.get('doctor_id')
     score = request.form.get('score')
     comment = request.form.get('comment') 
@@ -587,11 +586,8 @@ def create_review():
     timestamp = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
 
     # Check for null data
-    if profile_id is None or user_type is None:
-        result['error'] = 'Either profile_id or user_type is null.'
-        return json.dumps(result)
-    elif user_type != 'patient':
-        result['error'] = 'Request should contain patient as user_type.'
+    if customer_id is None:
+        result['error'] = 'Profile_id is null.'
         return json.dumps(result)
     elif score is None:
         result['error'] = '[Missing Score] Score for review is compulsory field.'
@@ -602,21 +598,12 @@ def create_review():
         con = connect_database()
         cursor = con.cursor()
 
-        # Get customer_id from customer table
-        sql_query = 'SELECT customer_id FROM customer WHERE profile_id={}'.format(profile_id)
-        cursor.execute(sql_query)
-        customer_id = cursor.fetchone()
-        customer_id = int(customer_id[0])
-
-        # Get doctor_id from customer table
-        sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(doctor_id)
-        cursor.execute(sql_query)
-        doctor_id = cursor.fetchone()
-        doctor_id = int(doctor_id[0])
-
         # Insert review in reviews table
-        sql_query = "INSERT INTO reviews(score, comment, customer_id, doctor_id, date) VALUES({},'{}',{},{},'{}')".format(score, comment, customer_id, doctor_id, timestamp)
-        
+        sql_query = '''INSERT INTO reviews(score, comment, customer_id, doctor_id, date)
+                        SELECT {}, '{}', c.customer_id, d.doctor_id, '{}'
+                        FROM doctor d, customer c
+                        WHERE c.profile_id = {} AND d.profile_id={}'''\
+            .format(score, comment, timestamp, customer_id, doctor_id)
         cursor.execute(sql_query)
         
         # Close connections
