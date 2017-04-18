@@ -99,13 +99,14 @@ def read_appointment():
 
         # Get appointments for doctor or customer
         if user_type == 'doctor':
-            sql_query = '''select a.appointment_id, a.customer_id, u.full_name, a.date, a.time, u.phone
-                            from appointment a, user_profile u, doctor d
+            sql_query = '''select a.appointment_id, c.profile_id, u.full_name, a.date, a.time, u.phone
+                            from appointment a, user_profile u, doctor d, customer c
                             where d.profile_id = {}
                             and a.doctor_id = d.doctor_id
-                            and u.profile_id = a.customer_id'''.format(profile_id)
+                            and a.customer_id = c.customer_id
+                            and u.profile_id = c.profile_id'''.format(profile_id)
         else:
-            sql_query = '''select a.appointment_id, a.doctor_id, u.full_name, a.date, a.time, u.phone, d.address
+            sql_query = '''select a.appointment_id, d.profile_id, u.full_name, a.date, a.time, u.phone, d.address
                             from appointment a, user_profile u, doctor d, customer c
                             where c.profile_id = {}
                             and a.customer_id = c.customer_id
