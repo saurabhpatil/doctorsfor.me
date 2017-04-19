@@ -2,7 +2,7 @@ from app import app, mdb
 from flask import request, json
 from config import *
 import os
-import datetime, time
+import datetime, time, math
 
 def connect_database():
     try:
@@ -296,10 +296,12 @@ def read_user():
         # get doctor or customer info
         if user_type == 'doctor':
             sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url,
-                                  u.address, d.experience, d.qualification
-                          FROM doctor d, user_profile u
-                          WHERE d.profile_id = u.profile_id AND d.profile_id = {}'''\
-                        .format(int(id))
+                            u.address, d.experience, d.qualification, AVG(r.score) score
+                            FROM doctor d, user_profile u, reviews r
+                            WHERE d.profile_id = u.profile_id
+                            AND r.doctor_id = d.doctor_id
+                            GROUP BY d.profile_id
+                            HAVING d.profile_id = {}'''.format(int(id))
         else:
             sql_query = '''SELECT full_name, city, state, country, phone, email, photo_url, address
                             FROM user_profile
@@ -315,12 +317,12 @@ def read_user():
         info_dict['phone'] = str(info[4])
         info_dict['email'] = str(info[5])
         info_dict['photo_url'] = str(info[6])
+        info_dict['address'] = str(info[7])
         print(info_dict)
         if user_type == 'doctor':
-            info_dict['address'] = str(info[7])
             info_dict['experience'] = int(info[8])
             info_dict['qualification'] = str(info[9])
-
+            info_dict['rating'] = round(str(info[10]))
         result['info'] = info_dict
 
         # Close connections
