@@ -322,7 +322,7 @@ def read_user():
         if user_type == 'doctor':
             info_dict['experience'] = int(info[8])
             info_dict['qualification'] = str(info[9])
-            info_dict['rating'] = round(str(info[10]))
+            info_dict['rating'] = round(float(info[10]))
         result['info'] = info_dict
 
         # Close connections
