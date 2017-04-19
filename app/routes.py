@@ -41,7 +41,7 @@ def search():
         # Get search results from doctor, user_profile and review tables
         sql_query = '''select D.profile_id, U.photo_url, U.full_name, D.qualification, D.experience, D.type,
                               D.address, U.city, U.state, U.country,
-                              CASE WHEN AVG(R.score) IS NULL THEN 5.0000
+                              CASE WHEN AVG(R.score) IS NULL THEN 5
                               ELSE AVG(R.score) END
                             FROM user_profile AS U
                             INNER JOIN doctor AS D ON U.profile_id=D.profile_id
@@ -296,12 +296,14 @@ def read_user():
         # get doctor or customer info
         if user_type == 'doctor':
             sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url,
-                            u.address, d.experience, d.qualification, AVG(r.score) score
-                            FROM doctor d, user_profile u, reviews r
-                            WHERE d.profile_id = u.profile_id
-                            AND r.doctor_id = d.doctor_id
-                            GROUP BY d.profile_id
-                            HAVING d.profile_id = {}'''.format(int(id))
+                            u.address, d.experience, d.qualification,
+                                (CASE WHEN AVG(r.score) IS NULL THEN 5
+                                ELSE AVG(r.score) END) AS score
+                            FROM user_profile AS u
+                            INNER JOIN doctor AS d ON u.profile_id=d.profile_id
+                            LEFT OUTER JOIN reviews AS r ON d.doctor_id=r.doctor_id
+                            WHERE d.profile_id = {}
+                            GROUP BY d.doctor_id'''.format(int(id))
         else:
             sql_query = '''SELECT full_name, city, state, country, phone, email, photo_url, address
                             FROM user_profile
@@ -318,11 +320,10 @@ def read_user():
         info_dict['email'] = str(info[5])
         info_dict['photo_url'] = str(info[6])
         info_dict['address'] = str(info[7])
-        print(info_dict)
         if user_type == 'doctor':
             info_dict['experience'] = int(info[8])
             info_dict['qualification'] = str(info[9])
-            info_dict['rating'] = round(str(info[10]))
+            info_dict['rating'] = round(float(info[10]))
         result['info'] = info_dict
 
         # Close connections
