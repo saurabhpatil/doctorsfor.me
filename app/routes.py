@@ -173,11 +173,17 @@ def create_appointment():
         cursor = con.cursor()
 
         # check if user exists
-        sql_query = '''INSERT INTO appointment(customer_id, doctor_id, date, time)
+        sql_query = '''INSERT IGNORE INTO appointment(customer_id, doctor_id, date, time)
                         SELECT c.customer_id, d.doctor_id, '{}', '{}'
                         FROM customer c, doctor d
                         WHERE c.profile_id = {} AND d.profile_id = {}'''\
                     .format(date, time, customer_id, doctor_id)
+        cursor.execute(sql_query)
+
+        sql_query = '''DELETE FROM availability
+                        WHERE date = '{}' AND time = '{}'
+                        AND doctor_id = (SELECT doctor_id FROM doctor WHERE profile_id = {})'''.\
+                        format(date, time, doctor_id)
         cursor.execute(sql_query)
 
         sql_query = 'SELECT MAX(appointment_id) FROM appointment'
@@ -213,6 +219,12 @@ def delete_appointment(id):
         # Connect to database
         con = connect_database()
         cursor = con.cursor()
+
+        # Add slot to availability
+        sql_query = '''INSERT INTO availability(doctor_id, date, time)
+                        SELECT doctor_id, date, time FROM appointment WHERE appointment_id = {}'''\
+                        .format(appointment_id)
+        cursor.execute(sql_query)
 
         # Get id from customer table
         sql_query = 'DELETE FROM appointment WHERE appointment_id = {}'.format(appointment_id)
