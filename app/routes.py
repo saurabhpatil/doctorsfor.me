@@ -4,7 +4,9 @@ from config import *
 import os
 import datetime, time, math
 
+
 def connect_database():
+    """Returns a connection to database"""
     try:
         con = mdb.connect(os.environ.get('SQL_DATABASE_URI'), SQL_DATABASE_USER, \
                       SQL_DATABASE_PASS, SQL_DATABASE_SCHEMA, \
@@ -16,12 +18,12 @@ def connect_database():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    """Returns home page of API server"""
     return '<h1>Howdy, Ags!</h1><h3>API server is running normally. Refer to API doc on Google Drive for usage.</h3>'
-
-''' API here onwards to be built by Saurabh '''
 
 @app.route('/search', methods=['GET'])
 def search():
+    """Returns search results of doctors for given query"""
     result = dict()
     result['success'] = False
 
@@ -81,6 +83,7 @@ def search():
 
 @app.route('/appointment', methods=['GET'])
 def read_appointment():
+    """Returns a list of appointments booked by a customer"""
     result = dict()
     result['success'] = False
 
@@ -147,6 +150,7 @@ def read_appointment():
 
 @app.route('/appointment', methods=['POST'])
 def create_appointment():
+    """Creates a new appointment for given time and date"""
     result = dict()
     result['success'] = False
 
@@ -194,12 +198,9 @@ def create_appointment():
     finally:
         con.close()
 
-@app.route('/appointment', methods=['PUT'])
-def update_appointment():
-    pass
-
 @app.route('/appointment/<int:id>', methods=['DELETE'])
 def delete_appointment(id):
+    """Deletes a previously created appointment"""
     result = dict()
     result['success'] = False
     appointment_id = id
@@ -230,6 +231,7 @@ def delete_appointment(id):
 
 @app.route('/login', methods=['POST'])
 def user_login():
+    """Returns log in information of user"""
     result = dict()
     result['success'] = False
 
@@ -277,6 +279,7 @@ def user_login():
 
 @app.route('/user', methods=['GET'])
 def read_user():
+    """Returns information pertaining to a user"""
     result = dict()
     result['success'] = False
 
@@ -341,6 +344,7 @@ def read_user():
 
 @app.route('/user', methods=['POST'])
 def create_user():
+    """Creates a new user account"""
     result = dict()
     result['success'] = False
 
@@ -406,12 +410,6 @@ def create_user():
         return json.dumps(result)
     finally:
         con.close()
-
-@app.route('/user', methods=['PUT'])
-def update_user():
-    pass
-
-''' API here onwards to be built by Aditya '''
 
 @app.route('/user/patient/<int:id>', methods=['DELETE'])
 def delete_patient(id):
@@ -621,14 +619,6 @@ def create_review():
         return json.dumps(result)
     finally:
         con.close()
-
-@app.route('/review', methods=['PUT'])
-def update_review():
-    pass
-
-@app.route('/review', methods=['DELETE'])
-def delete_review():
-    pass
 
 @app.route('/availability', methods=['GET'])
 def read_availability():
