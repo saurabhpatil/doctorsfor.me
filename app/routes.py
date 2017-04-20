@@ -2,7 +2,7 @@ from app import app, mdb
 from flask import request, json
 from config import *
 import os
-import datetime, time, math
+import datetime, time
 
 def connect_database():
     try:
@@ -298,7 +298,7 @@ def read_user():
             sql_query = '''SELECT u.full_name, u.city, u.state, u.country, u.phone, u.email, u.photo_url,
                             u.address, d.experience, d.qualification,
                                 (CASE WHEN AVG(r.score) IS NULL THEN 5
-                                ELSE AVG(r.score) END) AS score
+                                ELSE ROUND(AVG(r.score),0) END) AS score
                             FROM user_profile AS u
                             INNER JOIN doctor AS d ON u.profile_id=d.profile_id
                             LEFT OUTER JOIN reviews AS r ON d.doctor_id=r.doctor_id
@@ -323,7 +323,7 @@ def read_user():
         if user_type == 'doctor':
             info_dict['experience'] = int(info[8])
             info_dict['qualification'] = str(info[9])
-            info_dict['rating'] = round(float(info[10]))
+            info_dict['rating'] = int(info[10])
         result['info'] = info_dict
 
         # Close connections
