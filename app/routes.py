@@ -683,12 +683,12 @@ def create_availability():
     result['success'] = False
 
     profile_id = request.form.get('id')
-    available_slots = request.form.get('available_slots')   
+    available_slots = request.form.get('available_slots')
 
     # Check for null data
     if profile_id is None or available_slots is None:
-        result['error'] = 'Either profile_id or user_type is null.'
-        return result
+        result['error'] = 'Either profile_id or available_slots is null.'
+        return json.dumps(result)
 
     try:
         # Connect to database
@@ -697,37 +697,19 @@ def create_availability():
 
         # Unpack JSON from request
         availability_list = json.loads(available_slots)
-        
+
         # Get doctor_id from doctor table
         sql_query = 'SELECT doctor_id FROM doctor WHERE profile_id={}'.format(profile_id)
         cursor.execute(sql_query)
         doctor_id = cursor.fetchone()
         doctor_id = int(doctor_id[0])
 
-        # Get booked slots from database server pertaining to doctor
-        get_booked_slots_query = 'SELECT date, time FROM availability WHERE doctor_id={}'.format(doctor_id)
-        cursor.execute(get_booked_slots_query)
-        booked_slots = cursor.fetchall()
-        originals = set()
-        for slot in booked_slots:
-            booked_slots_key = str(slot[0])+' '+str(slot[1])
-            if booked_slots_key not in originals:
-                originals.add(booked_slots_key)
-
         # Check if the slots being provided have been already made available
-        results_availability_list = list()
         for slot in availability_list:
             date = slot['date']
             time = slot['time']
-            new_slot_key = date+' '+time
-            if new_slot_key not in originals:
-                results_availability_list.append(slot)
-        
-        # Insert review in reviews table
-        for slot in results_availability_list:
-            date = slot['date']
-            time = slot['time']
-            sql_query = "INSERT INTO availability(doctor_id, date, time) VALUES({},'{}','{}')".format(doctor_id, date, time)
+            sql_query = '''INSERT IGNORE INTO availability(doctor_id, date, time) VALUES({},'{}','{}')'''\
+                        .format(doctor_id, date, time)
             cursor.execute(sql_query)
         
         # Close connections
