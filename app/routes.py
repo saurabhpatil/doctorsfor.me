@@ -221,7 +221,7 @@ def delete_appointment(id):
         cursor = con.cursor()
 
         # Add slot to availability
-        sql_query = '''INSERT INTO availability(doctor_id, date, time)
+        sql_query = '''INSERT IGNORE INTO availability(doctor_id, date, time)
                         SELECT doctor_id, date, time FROM appointment WHERE appointment_id = {}'''\
                         .format(appointment_id)
         cursor.execute(sql_query)
