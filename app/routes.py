@@ -410,6 +410,8 @@ def create_user():
             sql_query = "INSERT INTO customer(profile_id) VALUES ({})".format(profile_id)
         cursor.execute(sql_query)
 
+        result['profile_id'] = profile_id
+
         # Close connections
         cursor.close()
         con.commit()
