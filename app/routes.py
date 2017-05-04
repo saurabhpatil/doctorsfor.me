@@ -18,12 +18,12 @@ def connect_database():
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    """Returns home page of API server"""
+    '''Returns home page of API server'''
     return '<h1>Howdy, Ags!</h1><h3>API server is running normally. Refer to API doc on Google Drive for usage.</h3>'
 
 @app.route('/search', methods=['GET'])
 def search():
-    """Returns search results of doctors for given query"""
+    '''Returns search results of doctors for given query'''
     result = dict()
     result['success'] = False
 
@@ -40,7 +40,7 @@ def search():
         con = connect_database()
         cursor = con.cursor()
 
-        # Get search results from doctor, user_profile and review tables
+        # Get search results based on doctor type and city
         sql_query = '''select D.profile_id, U.photo_url, U.full_name, D.qualification, D.experience, D.type,
                               D.address, U.city, U.state, U.country,
                               CASE WHEN AVG(R.score) IS NULL THEN 5
@@ -51,10 +51,12 @@ def search():
                             WHERE D.type='{}' AND U.city='{}'
                             GROUP BY D.doctor_id''' \
             .format(doctor_type, city)
-        print(sql_query)
+
         cursor.execute(sql_query)
         search_iterator = cursor.fetchall()
         result['search'] = list()
+
+        # construct a json for all for the search result-set
         for search_result in search_iterator:
             search_dict = dict()
             search_dict['doctor_id'] = int(search_result[0])
@@ -83,7 +85,7 @@ def search():
 
 @app.route('/appointment', methods=['GET'])
 def read_appointment():
-    """Returns a list of appointments booked by a customer"""
+    '''Returns a list of appointments booked by a customer'''
     result = dict()
     result['success'] = False
 
@@ -150,7 +152,7 @@ def read_appointment():
 
 @app.route('/appointment', methods=['POST'])
 def create_appointment():
-    """Creates a new appointment for given time and date"""
+    '''Creates a new appointment for given time and date'''
     result = dict()
     result['success'] = False
 
@@ -172,7 +174,7 @@ def create_appointment():
         con = connect_database()
         cursor = con.cursor()
 
-        # check if user exists
+        # Insert a new appointment in table, if appointment doesnt exist for the doctor for that date-time combination
         sql_query = '''INSERT IGNORE INTO appointment(customer_id, doctor_id, date, time)
                         SELECT c.customer_id, d.doctor_id, '{}', '{}'
                         FROM customer c, doctor d
@@ -180,6 +182,7 @@ def create_appointment():
                     .format(date, time, customer_id, doctor_id)
         cursor.execute(sql_query)
 
+        # delete the corresponding availability for the doctor
         sql_query = '''DELETE FROM availability
                         WHERE date = '{}' AND time = '{}'
                         AND doctor_id = (SELECT doctor_id FROM doctor WHERE profile_id = {})'''.\
@@ -198,6 +201,7 @@ def create_appointment():
         return json.dumps(result)
 
     except Exception as e:
+        # if the query or connection fails roll-back the transaction
         con.rollback()
         result['error'] = str(e)
         return json.dumps(result)
@@ -206,7 +210,7 @@ def create_appointment():
 
 @app.route('/appointment/<int:id>', methods=['DELETE'])
 def delete_appointment(id):
-    """Deletes a previously created appointment"""
+    '''Deletes a previously created appointment'''
     result = dict()
     result['success'] = False
     appointment_id = id
@@ -220,13 +224,13 @@ def delete_appointment(id):
         con = connect_database()
         cursor = con.cursor()
 
-        # Add slot to availability
+        # Add the appointment slot to availability
         sql_query = '''INSERT IGNORE INTO availability(doctor_id, date, time)
                         SELECT doctor_id, date, time FROM appointment WHERE appointment_id = {}'''\
                         .format(appointment_id)
         cursor.execute(sql_query)
 
-        # Get id from customer table
+        # Cancel the appointment
         sql_query = 'DELETE FROM appointment WHERE appointment_id = {}'.format(appointment_id)
         cursor.execute(sql_query)
         cursor.close()
@@ -243,7 +247,7 @@ def delete_appointment(id):
 
 @app.route('/login', methods=['POST'])
 def user_login():
-    """Returns log in information of user"""
+    '''Verify the user login'''
     result = dict()
     result['success'] = False
 
@@ -262,10 +266,13 @@ def user_login():
         con = connect_database()
         cursor = con.cursor()
 
-        # Get id from customer table
-        sql_query = "SELECT profile_id, full_name as id FROM user_profile WHERE username='{}' and password = '{}'".format(username, password)
+        # Get the id and name of the user
+        sql_query = "SELECT profile_id, full_name as id FROM user_profile WHERE username='{}' and password = '{}'"\
+                     .format(username, password)
         cursor.execute(sql_query)
         login_success = cursor.fetchone()
+
+        # if user exists return details
         if login_success is None:
             return json.dumps(result)
         else:
@@ -273,6 +280,8 @@ def user_login():
             full_name = login_success[1]
             sql_query = "SELECT 1 FROM customer WHERE profile_id={}".format(profile_id)
             cursor.execute(sql_query)
+
+            # Determine user type
             if cursor.fetchone() is not None:
                 result['user_type'] = 'customer'
             else:
@@ -291,7 +300,7 @@ def user_login():
 
 @app.route('/user', methods=['GET'])
 def read_user():
-    """Returns information pertaining to a user"""
+    '''Returns information pertaining to a user'''
     result = dict()
     result['success'] = False
 
@@ -326,6 +335,7 @@ def read_user():
                         .format(int(id))
         cursor.execute(sql_query)
         info = cursor.fetchone()
+
         info_dict = dict()
         info_dict['name'] = str(info[0])
         info_dict['city'] = str(info[1])
@@ -356,7 +366,7 @@ def read_user():
 
 @app.route('/user', methods=['POST'])
 def create_user():
-    """Creates a new user account"""
+    '''Creates a new user account'''
     result = dict()
     result['success'] = False
 
@@ -394,16 +404,19 @@ def create_user():
             return json.dumps(result)
 
         # add record to user_profile
-        sql_query = "INSERT INTO user_profile(username, password, email, phone, full_name, address, state, city, country) " \
-                    "VALUES('{}','{}','{}','{}','{}','{}','{}','{}','{}')"\
-                    .format(username, password, email, phone, full_name, address, state, city, country)
+        sql_query = """INSERT INTO user_profile(username, password, email, phone, full_name,
+                                              address, state, city, country)
+                       VALUES('{}','{}','{}','{}','{}','{}','{}','{}','{}')"""\
+                        .format(username, password, email, phone, full_name, address, state, city, country)
         print(sql_query)
         cursor.execute(sql_query)
 
+        # Get the id of new profile created
         sql_query = "SELECT max(profile_id) FROM user_profile"
         cursor.execute(sql_query)
         profile_id = int(cursor.fetchone()[0])
 
+        # If doctor then return address also
         if user_type == 'doctor':
             sql_query = "INSERT INTO doctor(profile_id, address) VALUES ({}, {})".format(profile_id, address)
         else:
@@ -427,7 +440,7 @@ def create_user():
 
 @app.route('/user/patient/<int:id>', methods=['DELETE'])
 def delete_patient(id):
-    """Delete a patient record from database"""
+    '''Delete a patient record from database'''
     result = dict()
     result['success'] = False
     profile_id = id
@@ -470,7 +483,7 @@ def delete_patient(id):
 
 @app.route('/user/doctor/<int:id>', methods=['DELETE'])
 def delete_doctor(id):
-    """Delete a doctor record from database"""
+    '''Delete a doctor record from database'''
     result = dict()
     result['success'] = False
     profile_id = id
@@ -514,17 +527,16 @@ def delete_doctor(id):
     finally:
         con.close()
 
-
 @app.route('/logout/<user_type>/<int:id>', methods=['POST'])
 def user_logout(user_type, id):
-    """Logs out a user from application"""
+    '''Logs out a user from application'''
     result = dict()
     result['success'] = True
     return json.dumps(result)
 
 @app.route('/review', methods=['GET'])
 def read_review():
-    """Reads list of reviews for a doctor"""
+    '''Reads list of reviews for a doctor'''
     result = dict()
     result['success'] = False
 
@@ -586,7 +598,7 @@ def read_review():
 
 @app.route('/review', methods=['POST'])
 def create_review():
-    """Creates a new review for a doctor"""
+    '''Creates a new review for a doctor'''
     result = dict()
     result['success'] = False
 
@@ -636,7 +648,7 @@ def create_review():
 
 @app.route('/availability', methods=['GET'])
 def read_availability():
-    """Read list of available slots for a doctor"""
+    '''Read list of available slots for a doctor'''
     result = dict()
     result['success'] = False
 
